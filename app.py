@@ -1,4 +1,8 @@
 #Importaciones:
+
+import sys
+sys.tracebacklimit = 1
+
 from fastapi import FastAPI
 from routes.usuarios import usuario
 from routes.pagos import pagos

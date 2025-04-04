@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from models.modelo import session, Usuario
+from models.modelo import session, Usuario, InputUsuario
 
 usuario = APIRouter()
 
@@ -15,3 +15,25 @@ def getAllusuario():
     except Exception as ex:
         print("Error :", ex)
         
+@usuario.get("/users/{identificador}")
+def obtenerUser(identificador:int) :
+    return session.query(Usuario).filter(Usuario.id==identificador).first()      
+
+@usuario.get("/usuario/{us}/{pw}")
+def loginUser(us:str, pw:str):
+    usu = session.query(Usuario).filter(Usuario.username==us).first()
+    if usu.password==pw:
+        return "Usuario logueado con exito"
+    else:
+        return "Usuario o contraseñaincorrecta"
+    
+
+@usuario.post("/users/new")   
+def create_user(us: InputUsuario) :
+    try:
+        usu = Usuario(us.id, us.username, us.password)
+        session.add(usu)
+        session.commit()
+        return "Usuario creado con éxito"
+    except Exception as ex:
+        print("Error --->", ex)

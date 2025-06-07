@@ -28,12 +28,14 @@ def loginUser(us:str, pw:str):
         return "Usuario o contraseñaincorrecta"
     
 
-@usuario.post("/users/new")   
+@usuario.post("/users/new")   #/add
 def create_user(us: InputUsuario) :
     try:
-        usu = Usuario(us.id, us.username, us.password)
+        usu = Usuario(us.username, us.password)
         session.add(usu)
         session.commit()
         return "Usuario creado con éxito"
     except Exception as ex:
         print("Error --->", ex)
+
+

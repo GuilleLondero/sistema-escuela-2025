@@ -18,7 +18,7 @@ api_escu.include_router(payment)
 # Agregamos middleware de CORS para permitir conexión desde frontend:
 api_escu.add_middleware(
     CORSMiddleware, # es el tipo de middleware a agregar
-    allow_origins=["*"], # Parámetro q permite acceso desde cualquier origen para conexión de FrontEnd (temporalmente)
+    allow_origins=["*"], # Parámetro q define acceso para conexión de FrontEnd (temporalmente)
     allow_credentials=True, # Permitimos el uso de cookies,etc
     allow_methods=["*"], # Permitimos todos los métodos HTTP
     allow_headers=["*"], # Permitimos cualquier encabezado (ej: Authorization)

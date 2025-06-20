@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from models.modelo import Payment, InputPayment, User ,session
+from models.modelo import Payment, InputPayment, User, session
 from sqlalchemy.orm import joinedload
 
 payment = APIRouter()
@@ -9,26 +9,27 @@ payment = APIRouter()
 @payment.get("/payment/all/detailled")
 def get_payments():
     paymentsDetailled = []
-    allPayments =  session.query(Payment).all()
+    allPayments = session.query(Payment).all()
     for pay in allPayments:
         result = {
-            "id_pago" : pay.id,
+            "id_pago": pay.id,
             "monto": pay.amount,
-            "afecha de pago" : pay.created_at,
-            "mes_pagado" : pay.affected_month,
+            "afecha de pago": pay.created_at,
+            "mes_pagado": pay.affected_month,
             "alumno": f"{pay.user.userdetail.first_name} {pay.user.userdetail.last_name}",
-            "carrera afectada": pay.career.name
+            "carrera afectada": pay.career.name,
         }
         paymentsDetailled.append(result)
     return paymentsDetailled
     ##return session.query(Payment).options(joinedload(Payment.user)).userdetail
 
+
 @payment.get("/payment/user/{_username}")
 def payament_user(_username: str):
     try:
-        userEncontrado = session.query(User).filter(User.username == _username ).first()
+        userEncontrado = session.query(User).filter(User.username == _username).first()
         arraySalida = []
-        if(userEncontrado):
+        if userEncontrado:
             payments = userEncontrado.payments
             for pay in payments:
                 payment_detail = {
@@ -37,7 +38,7 @@ def payament_user(_username: str):
                     "fecha_pago": pay.created_at,
                     "usuario": f"{pay.user.userdetail.first_name} {pay.user.userdetail.last_name}",
                     "carrera": pay.career.name,
-                    "mes_afectado":pay.affected_month
+                    "mes_afectado": pay.affected_month,
                 }
                 arraySalida.append(payment_detail)
             return arraySalida
@@ -49,8 +50,9 @@ def payament_user(_username: str):
     finally:
         session.close()
 
+
 @payment.post("/payment/add")
-def add_payment(pay:InputPayment):
+def add_payment(pay: InputPayment):
     try:
         newPayment = Payment(pay.id_career, pay.id_user, pay.amount, pay.affected_month)
         session.add(newPayment)

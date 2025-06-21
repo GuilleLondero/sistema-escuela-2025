@@ -147,3 +147,68 @@ def get_career_user(_username: str):
         print("Error al traer usuario y/o pagos")
     finally:
         session.close()
+
+
+## Devuelve una lista de todos los alumnos inscriptos a alguna carrera.
+@user.get("/users/alumnos")
+def get_all_students():
+    try:
+        alumnos = session.query(User).all()
+        salida = []
+        for u in alumnos:
+            if u.userdetail.type.lower() == "alumno":
+                carrera = (
+                    u.pivoteusercareer[0].career.name
+                    if u.pivoteusercareer else "Sin carrera"
+                )
+                salida.append({
+                    "id": u.id,
+                    "username": u.username,
+                    "nombre": u.userdetail.first_name,
+                    "apellido": u.userdetail.last_name,
+                    "email": u.userdetail.email,
+                    "carrera": carrera
+                })
+        return salida
+    except Exception as e:
+        session.rollback()
+        print("Error al traer alumnos:", e)
+        return JSONResponse(status_code=500, content={"message": "Error interno"})
+    
+
+#permite cambias contraseña de cada usuario
+@user.post("/users/change-password")
+def change_password(request: Request, data: dict):
+    try:
+        headers = request.headers
+        payload = Security.verify_token(headers)
+
+        if "iat" not in payload:
+            return JSONResponse(status_code=401, content={"message": "Token inválido"})
+
+        username = payload["username"]
+        new_password = data.get("new_password")
+
+        if not new_password:
+            return JSONResponse(status_code=400, content={"message": "Nueva contraseña requerida"})
+
+        user = session.query(User).filter(User.username == username).first()
+
+        if user:
+            user.password = new_password
+            session.commit()
+            return {"success": True, "message": "Contraseña actualizada correctamente"}
+        else:
+            return JSONResponse(status_code=404, content={"message": "Usuario no encontrado"})
+
+    except Exception as e:
+        session.rollback()
+        print("Error al cambiar contraseña:", e)
+        return JSONResponse(status_code=500, content={"message": "Error interno del servidor"})
+    
+
+    from fastapi import APIRouter
+from models.modelo import Career, session
+from fastapi.responses import JSONResponse
+
+career = APIRouter()

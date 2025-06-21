@@ -1,5 +1,5 @@
 from configs.db import engine, Base
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker, relationship
 from pydantic import BaseModel
 import datetime
@@ -39,9 +39,12 @@ class Career(Base):
     __tablename__="career"
     id = Column(Integer, primary_key=True)
     name = Column(String(50))
+    active = Column(Boolean, default=True)  # eliminación lógica
+    payments = relationship("Payment", back_populates="career")  # relación inversa
 
     def __init__(self, name):
         self.name= name
+        self.active: bool = True 
 
 class Payment(Base):
     __tablename__="payment"
@@ -50,9 +53,11 @@ class Payment(Base):
     id_user=Column(Integer, ForeignKey("user.id"))
     amount = Column(Integer)
     affected_month = Column(DateTime)
+    active = Column(Boolean, default=True)  # eliminación lógica
     created_at = Column(DateTime, default=datetime.datetime.now())
+
     user = relationship("User", uselist=False, back_populates="payments")
-    career = relationship("Career", uselist=False)
+    career = relationship("Career", uselist=False, back_populates="payments")
 
     def __init__(self, a, b, c, d):
         self.id_career = a
@@ -96,12 +101,13 @@ class InputUserDetail(BaseModel):
 
 class InputCareer(BaseModel):
     name: str
-
+    active: bool = True 
 class InputPayment(BaseModel):
     id_career: int
     id_user: int
     amount: int
     affected_month: datetime.date
+    active: bool = True
 
 class InputUserAddCareer(BaseModel):
     id_user: int
@@ -109,6 +115,9 @@ class InputUserAddCareer(BaseModel):
 # endregion
 
 # region configuraciones 
+
+# atencion, borra toda la base de datos!!
+# Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 Session = sessionmaker(bind=engine)

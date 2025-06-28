@@ -106,7 +106,7 @@ class InputPayment(BaseModel):
     id_career: int
     id_user: int
     amount: int
-    affected_month: datetime.date
+    affected_month: str
     active: bool = True
 
 class InputUserAddCareer(BaseModel):

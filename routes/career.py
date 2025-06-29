@@ -1,30 +1,28 @@
 from fastapi import APIRouter
 from models.modelo import Career, InputCareer, session
 from fastapi.responses import JSONResponse
+from fastapi import HTTPException
 
 # Creamos router para agrupar las rutas relacionadas con carreras:
 career = APIRouter()
 
 @career.get("/career/all")
-#  Obtenemos la lista de todas las carreras registradas en la base de datos.
 def get_careers():
-    return session.query(Career).all()
+    try:
+        # Solo devolver carreras activas y en formato JSON limpio
+        carreras = session.query(Career).filter(Career.active == True).all()
+        return [{"id": c.id, "name": c.name} for c in carreras]
+    except Exception as e:
+        print("Error al obtener carreras:", e)
+        raise HTTPException(status_code=500, detail="Error al obtener carreras")
+    finally:
+        session.close()
 
 
 
 
-# @career.put("/careers/{id}") 
-# def update_career(id: int, input: InputCareer):
-#     carrera = session.query(Career).filter(Career.id == id).first()
-#     if carrera:
-#         carrera.name = input.name
-#         carrera.active = input.active  # permite reactivar/desactivar
-#         session.commit()
-#         return {"success": True}
-#     return {"success": False, "message": "Carrera no encontrada"}
 
 
-from fastapi.responses import JSONResponse
 
 @career.put("/careers/{id}")
 def update_career(id: int, input: InputCareer):

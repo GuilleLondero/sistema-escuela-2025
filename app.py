@@ -25,4 +25,4 @@ api_escu.add_middleware(
 )
 
 
-# uvicorn app:api_escu --reload
+# uvicorn app:api_escu --reload 

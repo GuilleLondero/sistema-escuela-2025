@@ -2,26 +2,36 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from models.modelo import Payment, InputPayment, User, session
 from sqlalchemy.orm import joinedload
+from datetime import datetime
+
+meses = {
+    1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+    5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+    9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+}
 
 payment = APIRouter()
 
 
-@payment.get("/payment/all/detailled")
-def get_payments():
-    paymentsDetailled = []
-    allPayments = session.query(Payment).all()
-    for pay in allPayments:
-        result = {
-            "id_pago": pay.id,
-            "monto": pay.amount,
-            "afecha de pago": pay.created_at,
-            "mes_pagado": pay.affected_month,
-            "alumno": f"{pay.user.userdetail.first_name} {pay.user.userdetail.last_name}",
-            "carrera afectada": pay.career.name,
-        }
-        paymentsDetailled.append(result)
-    return paymentsDetailled
-    ##return session.query(Payment).options(joinedload(Payment.user)).userdetail
+@payment.post("/payment/add")
+def add_payment(pay: InputPayment):
+    try:
+        # Convertir string a datetime.date
+        fecha = datetime.strptime(pay.affected_month, "%Y-%m").date()
+
+        newPayment = Payment(
+            pay.id_career,
+            pay.id_user,
+            pay.amount,
+            fecha  
+        )
+        session.add(newPayment)
+        session.commit()
+        return {"message": "Pago registrado con éxito"}
+    except Exception as ex:
+        session.rollback()
+        print("Error:", ex)
+        return JSONResponse(status_code=500, content={"message": "Error al guardar pago"})
 
 
 @payment.get("/payment/user/{_username}")
@@ -45,7 +55,7 @@ def payment_user(_username: str):
                 "fecha_pago": pay.created_at,
                 "usuario": f"{user.userdetail.first_name} {user.userdetail.last_name}",
                 "carrera": pay.career.name,
-                "mes_afectado": pay.affected_month,
+                "mes_afectado": f"{meses[pay.affected_month.month]} de {pay.affected_month.year}",
             }
             for pay in payments
         ]
@@ -57,23 +67,6 @@ def payment_user(_username: str):
         return JSONResponse(status_code=500, content={"message": "Error interno"})
 
 
-
-@payment.post("/payment/add")
-def add_payment(pay: InputPayment):
-    try:
-        newPayment = Payment(pay.id_career, pay.id_user, pay.amount, pay.affected_month)
-        session.add(newPayment)
-        session.commit()
-        res = f"Pago para el alumno {newPayment.user.userdetail.first_name} {newPayment.user.userdetail.last_name}, aguardado!"
-        print(res)
-        return res
-    except Exception as ex:
-        session.rollback()
-        print("Error al guardar un pago --> ", ex)
-    finally:
-        session.close()
-
-
 @payment.put("/payments/{id}")
 def update_payment(id: int, input: InputPayment):
     try:
@@ -81,19 +74,28 @@ def update_payment(id: int, input: InputPayment):
         if not pay:
             return JSONResponse(status_code=404, content={"message": "Pago no encontrado"})
 
+        # Actualizar campos básicos
         pay.id_user = input.id_user
         pay.id_career = input.id_career
         pay.amount = input.amount
-        pay.affected_month = input.affected_month
         pay.active = input.active
+        
+        # Convertir affected_month de string a datetime si es necesario
+        if isinstance(input.affected_month, str):
+            pay.affected_month = datetime.strptime(input.affected_month, "%Y-%m").date()
+        else:
+            pay.affected_month = input.affected_month
 
         session.commit()
-        return {"success": True}
+        return {"success": True, "message": "Pago actualizado correctamente"}
+    except ValueError as ve:
+        session.rollback()
+        print("Error de formato de fecha:", ve)
+        return JSONResponse(status_code=400, content={"message": "Formato de fecha incorrecto. Use YYYY-MM"})
     except Exception as e:
         session.rollback()
         print("Error al actualizar pago:", e)
         return JSONResponse(status_code=500, content={"message": "Error interno"})
-
 
 
 @payment.delete("/payment/{id}")
@@ -121,7 +123,7 @@ def get_active_payments():
                 "id": p.id,
                 "monto": p.amount,
                 "fecha": p.created_at,
-                "mes_afectado": p.affected_month,
+                "mes_afectado": f"{meses[p.affected_month.month]} de {p.affected_month.year}",
                 "alumno": f"{p.user.userdetail.first_name} {p.user.userdetail.last_name}",
                 "carrera": p.career.name
             }

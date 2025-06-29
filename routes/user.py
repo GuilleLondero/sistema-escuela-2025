@@ -207,8 +207,70 @@ def change_password(request: Request, data: dict):
         return JSONResponse(status_code=500, content={"message": "Error interno del servidor"})
     
 
-    from fastapi import APIRouter
-from models.modelo import Career, session
-from fastapi.responses import JSONResponse
 
-career = APIRouter()
+
+@user.put("/users/update")
+def update_user_profile(request: Request, data: dict):
+    try:
+        payload = Security.verify_token(request.headers)
+
+        if "iat" not in payload:
+            return JSONResponse(status_code=401, content={"message": "Token inválido"})
+
+        username = payload["username"]
+
+        # Buscar el usuario
+        user = session.query(User).filter(User.username == username).first()
+
+        if not user:
+            return JSONResponse(status_code=404, content={"message": "Usuario no encontrado"})
+
+        # Actualizar datos del UserDetail
+        user.userdetail.first_name = data.get("first_name", user.userdetail.first_name)
+        user.userdetail.last_name = data.get("last_name", user.userdetail.last_name)
+        user.userdetail.email = data.get("email", user.userdetail.email)
+        #Si se mandó una nueva contraseña, también la actualizamos
+        if "new_password" in data and data["new_password"]:
+         user.password = data["new_password"]
+
+        session.commit()
+
+        return JSONResponse(status_code=200, content={"message": "Perfil actualizado correctamente."})
+    except Exception as e:
+        session.rollback()
+        print("Error al actualizar perfil:", e)
+        return JSONResponse(status_code=500, content={"message": "Error interno al actualizar el perfil."})
+
+
+
+
+
+
+
+
+
+
+@user.put("/users/reset-password/{username}")
+def reset_password_admin(username: str, request: Request, data: dict):
+    try:
+        payload = Security.verify_token(request.headers)
+        if "iat" not in payload:
+            return JSONResponse(status_code=401, content={"message": "Token inválido"})
+
+        new_password = data.get("new_password")
+        if not new_password:
+            return JSONResponse(status_code=400, content={"message": "Nueva contraseña requerida"})
+
+        user = session.query(User).filter(User.username == username).first()
+        if user:
+            user.password = new_password
+            session.commit()
+            return {"success": True, "message": "Contraseña restablecida correctamente"}
+        else:
+            return JSONResponse(status_code=404, content={"message": "Usuario no encontrado"})
+
+    except Exception as e:
+        session.rollback()
+        print("Error al restablecer contraseña:", e)
+        return JSONResponse(status_code=500, content={"message": "Error interno del servidor"})
+
